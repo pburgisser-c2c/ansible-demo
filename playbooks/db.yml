@@ -1,0 +1,55 @@
+- hosts: tag_Tier_db
+  become: true
+  vars:
+    mysql_root_password: P@$$w0rd!
+  pre_tasks:
+    - name: Update apt-get repo and cache
+      apt: 
+        update_cache: yes
+        force_apt_get: yes
+        cache_valid_time: 3600  
+    - name: Install pip3
+      package:
+        name: python3-pip
+        state: present
+    - name: Install the PyMySQL through pip
+      pip:
+        name: "{{ item }}"
+        state: forcereinstall
+      with_items:
+        - pip
+        - PyMySQL        
+  tasks:
+    - name: install MySQL
+      package:
+        name: mysql-server
+        state: present
+    - name: Update bind-address
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        state: present
+        regexp: '^bind-address.*$'
+        line: bind-address=0.0.0.0
+      notify: Restart MySQL
+    - name: Create wordpress user
+      mysql_user:
+        name: wordpress
+        host: "{{ hostvars[groups['tag_Tier_web'][0]].ansible_host }}"
+        password: 'wordpress'
+        state: present
+        priv: "wordpress.*:ALL"
+        login_user: root
+        login_password: "{{ mysql_root_password }}"        
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+    - name: Create wordpress db
+      mysql_db:
+        name: wordpress
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"                
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+  handlers:
+    - name: Restart MySQL
+      service:
+        name: mysql
+        state: restarted

@@ -1,0 +1,6 @@
+---
+collections:
+  - geerlingguy.php_roles
+roles:
+  - name: pburgisser.wordpress
+    src: https://github.com/pburgisser-c2c/ansible-role-wordress-demo

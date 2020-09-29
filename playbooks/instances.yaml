@@ -1,0 +1,90 @@
+- hosts: localhost
+  tasks:
+  - name: Find VPC ID
+    ec2_vpc_net_info:
+      filters:
+        "tag:Name": "{{ vpc_name }}"
+    register: vpc_id
+
+  - name: find subnet ID
+    ec2_vpc_subnet_info:
+      filters:
+        "tag:Name": "{{ vpc_name }}-primary-subnet"
+    register: vpc_subnet_id
+  - debug:
+      var: vpc_subnet_id
+  - name: Create common security groups
+    ec2_group:
+      name: "{{ vpc_name }}-common"
+      description: "ansible demo: SSH"
+      region: "{{ ec2_region }}"
+      vpc_id: "{{ vpc_id.vpcs[0].id }}"
+      rules:
+        - proto: tcp
+          ports:
+            - 22
+          cidr_ip: 0.0.0.0/0
+          rule_desc: "ssh"
+  - name: Create web security groups
+    ec2_group:
+      name: "{{ vpc_name }}-web"
+      description: "ansible demo: http"
+      region: "{{ ec2_region }}"
+      vpc_id: "{{ vpc_id.vpcs[0].id }}"
+      rules:
+        - proto: tcp
+          ports:
+            - 443
+            - 80
+          cidr_ip: 0.0.0.0/0
+          rule_desc: "http"      
+  - name: Create db security groups
+    ec2_group:
+      name: "{{ vpc_name }}-db"
+      description: "ansible demo: http"
+      region: "{{ ec2_region }}"
+      vpc_id: "{{ vpc_id.vpcs[0].id }}"
+      rules:
+        - proto: tcp
+          ports:
+            - 3306
+          cidr_ip: 0.0.0.0/0
+          rule_desc: "mysql"                
+  - name: Create web instance
+    ec2:
+      key_name: "{{ ec2_keyname }}"
+      image: "{{ ec2_default_ami }}"
+      instance_type: t2.micro
+      vpc_subnet_id: "{{ vpc_subnet_id.subnets[0].id }}"
+      assign_public_ip: yes
+      region: "{{ ec2_region }}"
+      group:
+        - "{{ vpc_name }}-common"
+        - "{{ vpc_name }}-web"
+      count_tag:
+        Name: "{{ ec2_name_prefix }}-web1"
+      exact_count: 1
+      instance_tags:
+        Name: "{{ ec2_name_prefix }}-web1"
+        AnsibleManaged: true
+        AnsibleDemo: true
+        Tier: web
+  - name: Create database instance
+    ec2:
+      key_name: "{{ ec2_keyname }}"
+      image: "{{ ec2_default_ami }}"
+      instance_type: t2.micro
+      vpc_subnet_id: "{{ vpc_subnet_id.subnets[0].id }}"
+      assign_public_ip: yes
+      region: "{{ ec2_region }}"
+      group:
+        - "{{ vpc_name }}-common"
+        - "{{ vpc_name }}-db"     
+      count_tag:
+        Name: "{{ ec2_name_prefix }}-db1"
+      exact_count: 1
+      instance_tags:
+        Name: "{{ ec2_name_prefix }}-db1"
+        AnsibleManaged: true
+        AnsibleDemo: true
+        Tier: db        

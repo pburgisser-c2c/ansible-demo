@@ -1,0 +1,28 @@
+- hosts: tag_Tier_web
+  become: true
+  pre_tasks:
+    - name: install packages
+      package:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - apache2
+        - php 
+        - php-mysql
+        - libapache2-mod-php
+      notify: Restart Apache
+  roles:
+    - role: pburgisser.wordpress
+      vars:
+        wp_db_name: wordpress
+        wp_db_user: wordpress
+        wp_db_host: "{{ hostvars[groups['tag_Tier_db'][0]].ansible_host }}"
+        wp_db_password: wordpress
+        wp_debug: true
+  handlers:
+    - name: Restart Apache
+      service:
+        name: apache2
+        state:  started
+        enabled: true
+      

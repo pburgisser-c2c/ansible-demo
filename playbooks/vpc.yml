@@ -1,0 +1,43 @@
+- hosts: localhost
+  tasks:
+    - name: Create VPC
+      ec2_vpc_net:
+        name: "{{ vpc_name }}"
+        state: "{{ vpc_state }}"
+        cidr_block: "{{ vpc_cidr_block }}"
+        region: "{{ vpc_region }}"
+        resource_tags:
+          Name: "{{ vpc_name }}"
+          vpc_name: "{{ vpc_name }}"
+      register: vpc_data
+    - name: Register VPC ID
+      set_fact:
+        vpc_id: "{{ vpc_data.vpc.id }}"
+    - name: Create subnet
+      ec2_vpc_subnet:
+        state: "{{ vpc_state }}"
+        cidr: "{{ vpc_primary_subnet_block }}"
+        vpc_id: "{{ vpc_data.vpc.id }}"
+        map_public: yes        
+        resource_tags:
+          Name: "{{ vpc_name }}-primary-subnet"
+          vpc_name: "{{ vpc_name }}"
+      register: subnet
+    - name: Create internet gateway          
+      ec2_vpc_igw:
+        vpc_id: "{{ vpc_data.vpc.id }}"
+        state: "{{ vpc_state }}"
+        resource_tags:
+          Name: "{{ vpc_name }}-igw"
+
+      register: igw
+    - name: Route IGW
+      ec2_vpc_route_table:
+        vpc_id: "{{ vpc_data.vpc.id  }}"
+        subnets:
+          - "{{ subnet.subnet.id }}"
+        routes:
+          - dest: 0.0.0.0/0
+            gateway_id: "{{ igw.gateway_id  }}"
+        tags:
+          Name: "{{ vpc_name }}-route"
