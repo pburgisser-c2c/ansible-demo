@@ -1,4 +1,14 @@
 - hosts: localhost
+  vars:
+    vpc_state: present
+    vpc_name: ansible-tower-samples
+    vpc_region: eu-west-1
+    vpc_cidr_block: 172.23.0.0/16
+    vpc_primary_subnet_block: 172.23.1.0/24
+    ec2_keyname: pburgisser
+    ec2_default_ami: ami-0823c236601fef765 #ami-0bb3fad3c0286ebd5
+    ec2_region: "{{ vpc_region }}"
+    ec2_name_prefix: "{{ vpc_name }}"
   tasks:
   - name: Find VPC ID
     ec2_vpc_net_info:
