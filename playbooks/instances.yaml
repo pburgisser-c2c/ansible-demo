@@ -14,15 +14,16 @@
     ec2_vpc_net_info:
       filters:
         "tag:Name": "{{ vpc_name }}"
+      region: "{{ ec2_region }}"
     register: vpc_id
 
   - name: find subnet ID
     ec2_vpc_subnet_info:
       filters:
         "tag:Name": "{{ vpc_name }}-primary-subnet"
+      region: "{{ ec2_region }}"        
     register: vpc_subnet_id
-  - debug:
-      var: vpc_subnet_id
+
   - name: Create common security groups
     ec2_group:
       name: "{{ vpc_name }}-common"
